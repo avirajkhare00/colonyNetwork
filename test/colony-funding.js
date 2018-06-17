@@ -129,7 +129,7 @@ contract("Colony Funding", addresses => {
       assert.equal(pot3Balance.toNumber(), 0);
     });
 
-    it("should correctly track if we are able to make token payouts", async () => {
+    it.only("should correctly track if we are able to make token payouts", async () => {
       // There are eighteen scenarios to test here.
       // Pot was below payout, now equal (1 + 2)
       // Pot was below payout, now above (3 + 4)
@@ -178,13 +178,11 @@ contract("Colony Funding", addresses => {
       // Pot 80, Payout 40
       // Pot was above payout, transition to being equal by increasing payout (12)
       await colony.setTaskManagerPayout(1, otherToken.address, 80);
-
       task = await colony.getTask.call(1);
       assert.equal(task[5].toNumber(), 0);
       // Pot 80, Payout 80
       // Pot was equal to payout, transition to being above by decreasing payout (6)
       await colony.setTaskManagerPayout(1, otherToken.address, 40);
-
       task = await colony.getTask.call(1);
       assert.equal(task[5].toNumber(), 0);
       // Pot 80, Payout 40
@@ -308,6 +306,7 @@ contract("Colony Funding", addresses => {
       await colony.claimPayout(taskId, WORKER_ROLE, token.address, {
         from: WORKER
       });
+
       const remainingPotBalance = await colony.getPotBalance(taskInfo[6].toNumber(), token.address);
       assert.equal(remainingPotBalance.toString(), WORKER_PAYOUT.toString(), "should have remaining pot balance equal to worker payout");
 
@@ -366,7 +365,7 @@ contract("Colony Funding", addresses => {
       assert.equal(pot3Balance.toNumber(), 0);
     });
 
-    it("should correctly track if we are able to make ether payouts", async () => {
+    it.only("should correctly track if we are able to make ether payouts", async () => {
       await colony.send(100);
       await colony.claimColonyFunds(0x0);
       await colony.makeTask(SPECIFICATION_HASH, 1);

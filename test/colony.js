@@ -728,7 +728,7 @@ contract("Colony", addresses => {
   });
 
   describe("when funding tasks", () => {
-    it("should be able to set the task payouts for different roles", async () => {
+    it.only("should be able to set the task payouts for different roles", async () => {
       await colony.makeTask(SPECIFICATION_HASH, 1);
       await colony.setTaskRoleUser(1, WORKER_ROLE, WORKER);
       await colony.setTaskRoleUser(1, EVALUATOR_ROLE, EVALUATOR);

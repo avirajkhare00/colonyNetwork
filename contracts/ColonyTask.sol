@@ -172,13 +172,13 @@ contract ColonyTask is ColonyStorage, DSMath {
     } else {
       nSignaturesRequired = 2;
     }
-    
+
     require(_sigR.length == nSignaturesRequired);
 
     bytes32 msgHash = keccak256(abi.encodePacked(address(this), address(this), _value, _data, taskChangeNonces[taskId]));
     address[] memory reviewerAddresses = new address[](nSignaturesRequired);
     for (uint i = 0; i < nSignaturesRequired; i++) {
-      // 0 'Normal' mode - geth, etc. 
+      // 0 'Normal' mode - geth, etc.
       // >0 'Trezor' mode
       // Correct incantation helpfully cribbed from https://github.com/trezor/trezor-mcu/issues/163#issuecomment-368435292
       bytes32 txHash;
@@ -187,17 +187,17 @@ contract ColonyTask is ColonyStorage, DSMath {
       } else {
         txHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n\x20", msgHash));
       }
-    
+
       reviewerAddresses[i] = ecrecover(txHash, _sigV[i], _sigR[i], _sigS[i]);
     }
 
     require(reviewerAddresses[0] == tasks[taskId].roles[reviewers[sig][0]].user || reviewerAddresses[0] == tasks[taskId].roles[reviewers[sig][1]].user);
-    
+
     if (nSignaturesRequired == 2) {
       require(reviewerAddresses[0] != reviewerAddresses[1]);
       require(reviewerAddresses[1] == tasks[taskId].roles[reviewers[sig][0]].user || reviewerAddresses[1] == tasks[taskId].roles[reviewers[sig][1]].user);
     }
-    
+
     taskChangeNonces[taskId]++;
     require(executeCall(address(this), _value, _data));
   }
@@ -351,21 +351,16 @@ contract ColonyTask is ColonyStorage, DSMath {
 
     for (uint8 roleId = 0; roleId <= 2; roleId++) {
       Role storage role = task.roles[roleId];
-      TaskRatings rating = (roleId == EVALUATOR) ? TaskRatings.Satisfactory : role.rating;
-      uint payout = task.payouts[roleId][token];
 
-      int reputation = getReputation(int(payout), uint8(rating), role.rateFail);
+      if (roleId == EVALUATOR) // They had one job!
+        role.rating = role.rateFail ? TaskRatings.Unsatisfactory : TaskRatings.Satisfactory;
+
+      uint payout = task.payouts[roleId][token];
+      int reputation = getReputation(int(payout), uint8(role.rating), role.rateFail);
 
       colonyNetworkContract.appendReputationUpdateLog(role.user, reputation, domains[task.domainId].skillId);
-
-      if (roleId == WORKER) {
+      if (roleId == WORKER)
         colonyNetworkContract.appendReputationUpdateLog(role.user, reputation, task.skills[0]);
-
-        if (rating == TaskRatings.Unsatisfactory) {
-          task.payouts[roleId][token] = 0;
-          task.totalPayouts[token] = sub(task.totalPayouts[token], payout);
-        }
-      }
     }
 
     emit TaskFinalized(_id);
@@ -384,6 +379,18 @@ contract ColonyTask is ColonyStorage, DSMath {
   function getTask(uint256 _id) public view returns (bytes32, bytes32, bool, bool, uint256, uint256, uint256, uint256, uint256, uint256[]) {
     Task storage t = tasks[_id];
     return (t.specificationHash, t.deliverableHash, t.finalized, t.cancelled, t.dueDate, t.payoutsWeCannotMake, t.potId, t.deliverableTimestamp, t.domainId, t.skills);
+  }
+
+  function getTaskState(uint256 _id) public view returns (uint8) {
+    Task storage task = tasks[_id];
+    if (task.cancelled)
+      return uint8(TaskState.Cancelled);
+    else if (task.finalized)
+      return uint8(TaskState.Finalized);
+    else if (task.roles[WORKER].user == 0x0)
+      return uint8(TaskState.Draft);
+    else
+      return uint8(TaskState.Active);
   }
 
   function getTaskRole(uint256 _id, uint8 _role) public view returns (address, bool, uint8) {

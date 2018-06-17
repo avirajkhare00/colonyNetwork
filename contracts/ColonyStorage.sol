@@ -109,6 +109,8 @@ contract ColonyStorage is DSAuth {
     mapping (uint256 => mapping (address => uint256)) payouts;
   }
 
+  enum TaskState { Draft, Active, Cancelled, Finalized }
+
   enum TaskRatings { None, Unsatisfactory, Satisfactory, Excellent }
 
   struct Role {
@@ -144,6 +146,36 @@ contract ColonyStorage is DSAuth {
 
   modifier taskExists(uint256 _id) {
     require(_id <= taskCount);
+    _;
+  }
+
+  modifier taskNotDraft(uint256 _id) {
+    require(!isTaskDraft(_id));
+    _;
+  }
+
+  modifier taskDraft(uint256 _id) {
+    require(isTaskDraft(_id));
+    _;
+  }
+
+  modifier taskNotActive(uint256 _id) {
+    require(!isTaskActive(_id));
+    _;
+  }
+
+  modifier taskActive(uint256 _id) {
+    require(isTaskActive(_id));
+    _;
+  }
+
+  modifier taskNotCancelled(uint256 _id) {
+    require(!tasks[_id].cancelled);
+    _;
+  }
+
+  modifier taskCancelled(uint256 _id) {
+    require(tasks[_id].cancelled);
     _;
   }
 
@@ -188,5 +220,13 @@ contract ColonyStorage is DSAuth {
   modifier self() {
     require(address(this) == msg.sender);
     _;
+  }
+
+  function isTaskDraft(uint256 _id) public view returns(bool) {
+    return !(tasks[_id].cancelled || tasks[_id].finalized) && tasks[_id].roles[WORKER].user == 0x0;
+  }
+
+  function isTaskActive(uint256 _id) public view returns(bool) {
+    return !(tasks[_id].cancelled || tasks[_id].finalized) && tasks[_id].roles[WORKER].user != 0x0;
   }
 }

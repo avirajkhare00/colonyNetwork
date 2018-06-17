@@ -292,6 +292,11 @@ contract IColony {
   /// @return Rating the user received
   function getTaskRole(uint256 _id, uint8 _role) public view returns (address, bool, uint8);
 
+  /// @notice Return task state (draft, active, cancelled, finalized)
+  /// @param _id Id of the task
+  /// @return State of the task
+  function getTaskState(uint256 _id) public view returns(uint8);
+
   // Implemented in ColonyFunding.sol
   /// @notice Return 1 / the fee to pay to the network. e.g. if the fee is 1% (or 0.01), return 100
   /// @return The inverse of the network fee
@@ -407,4 +412,6 @@ contract IColony {
   /// @param _token Address of the token, `0x0` value indicates Ether
   /// @return Total amount of tokens in pots other than the rewards pot (id 0)
   function getNonRewardPotsTotal(address _token) public view returns (uint256);
+
+  function remainingPayouts(uint256 _id, address _token) public view returns(uint256);
 }
